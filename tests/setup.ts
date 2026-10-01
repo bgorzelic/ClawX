@@ -23,6 +23,20 @@ Object.defineProperty(window, 'electron', {
   writable: true,
 });
 
+// Node >= 25 defines its own global localStorage, which is undefined unless
+// --localstorage-file is passed, and it shadows jsdom's. zustand's persist
+// middleware then has no storage and every setState throws. Use jsdom's.
+if (typeof globalThis.localStorage?.setItem !== 'function') {
+  const { jsdom } = globalThis as unknown as { jsdom: { window: Window } };
+  for (const key of ['localStorage', 'sessionStorage'] as const) {
+    Object.defineProperty(globalThis, key, {
+      value: jsdom.window[key],
+      configurable: true,
+      writable: true,
+    });
+  }
+}
+
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
